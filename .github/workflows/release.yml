@@ -1,0 +1,62 @@
+name: Release
+
+# Every push to main rebuilds the deck and OVERWRITES a single, stable release
+# tagged `latest`. The presentation QR (assets/qr/slides.png) points at
+# /releases/latest, so it always resolves to the current PDF / PPTX / HTML and
+# the reference printed on the slide never breaks. Only one release ever exists.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Marp needs a headless Chromium for PDF/PPTX. The official marp-cli image
+      # bundles it; MARP_USER=root:root lets Chromium run with --no-sandbox on CI.
+      - name: Render PDF
+        uses: docker://marpteam/marp-cli:latest
+        with:
+          args: slides.md --pdf --theme-set themes/booting-into-kubernetes.css --allow-local-files -o dist/slides.pdf
+        env:
+          MARP_USER: root:root
+
+      - name: Render PPTX (with speaker notes)
+        uses: docker://marpteam/marp-cli:latest
+        with:
+          args: slides.md --pptx --theme-set themes/booting-into-kubernetes.css --allow-local-files -o dist/slides.pptx
+        env:
+          MARP_USER: root:root
+
+      - name: Render HTML
+        uses: docker://marpteam/marp-cli:latest
+        with:
+          args: slides.md --html --theme-set themes/booting-into-kubernetes.css --allow-local-files -o dist/slides.html
+        env:
+          MARP_USER: root:root
+
+      # Single release: create `latest` once, then clobber its assets every run.
+      # Never accumulates versions, so /releases/latest is a permanent URL.
+      - name: Publish / overwrite the single `latest` release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest >/dev/null 2>&1 \
+            || gh release create latest \
+                 --title "Slides — latest build" \
+                 --notes "Auto-published from main. Always the current deck (PDF · PPTX · HTML)." \
+                 --latest
+          gh release upload latest \
+            dist/slides.pdf dist/slides.pptx dist/slides.html \
+            --clobber

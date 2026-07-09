@@ -1,0 +1,7 @@
+node_modules/
+dist/
+assets/
+package-lock.json
+*.svg
+# slides.md is hand-tuned Marp markdown (inline HTML + ASCII diagrams) — leave it alone
+slides.md

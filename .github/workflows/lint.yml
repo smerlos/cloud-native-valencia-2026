@@ -1,0 +1,28 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+
+      - name: Prettier — format check
+        run: npx prettier --check .
+
+      - name: Markdownlint — README
+        run: npx markdownlint-cli2 "README.md"
+
+      - name: Marp — build check (slides must compile)
+        run: npm run render

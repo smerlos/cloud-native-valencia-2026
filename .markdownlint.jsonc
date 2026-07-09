@@ -1,0 +1,7 @@
+{
+  // Relaxed for a slides repo README: allow long lines and inline HTML.
+  "default": true,
+  "MD013": false, // line length
+  "MD033": false, // inline HTML
+  "MD041": false, // first line does not need to be a top-level heading
+}
